@@ -26,6 +26,11 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+# Nhiều worker + dataset đọc hàng loạt .mat dễ chạm trần file descriptor
+# ("Too many open files"). Chia sẻ tensor qua file_system thay vì file_descriptor
+# để không phụ thuộc ulimit -n.
+torch.multiprocessing.set_sharing_strategy("file_system")
+
 from config import CONFIG
 from data import make_datasets, make_loader, split_by_sequence
 from losses import PoseLoss
