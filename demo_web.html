@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HPE-Li-3D Demo (3-panel)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: #eef1f6;
+      color: #2a2f3a;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      font-size: 13px;
+    }
+
+    header {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 14px;
+      background: #ffffff;
+      border-bottom: 1px solid #d9dee8;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: 0;
+      color: #1f2530;
+      flex: 0 0 auto;
+    }
+
+    #seq-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    #seq-picker select {
+      height: 28px;
+      padding: 0 8px;
+    }
+
+    #run-btn {
+      height: 28px;
+      border-color: #2196f3;
+      color: #1769c4;
+      font-weight: 650;
+    }
+
+    #run-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #path-info {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #6a7283;
+      font-size: 11px;
+    }
+
+    #main {
+      height: calc(100vh - 96px);
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 1px;
+      background: #d9dee8;
+    }
+
+    .panel {
+      min-width: 0;
+      min-height: 0;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .panel-title {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      border-bottom: 1px solid #e3e7ef;
+      color: #4a5160;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .panel-title-actions {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #6a7283;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .title-button {
+      height: 24px;
+      border-radius: 5px;
+      padding: 0 8px;
+      font-size: 11px;
+    }
+
+    .title-button.active {
+      border-color: #2196f3;
+      color: #1769c4;
+    }
+
+    #frame-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .viewer,
+    #rgb-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    #rgb-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f6fa;
+    }
+
+    #rgb-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+
+    #rgb-placeholder {
+      color: #9aa2b2;
+      font-size: 13px;
+    }
+
+    #metrics-drawer {
+      position: absolute;
+      left: 0;
+      top: 32px;
+      bottom: 0;
+      width: 100%;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border-right: 1px solid #d9dee8;
+      box-shadow: 12px 0 28px rgba(40, 50, 70, 0.18);
+      transform: translateX(-102%);
+      transition: transform 160ms ease-out;
+    }
+
+    #metrics-drawer.open {
+      transform: translateX(0);
+    }
+
+    .metrics-header {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      border-bottom: 1px solid #e3e7ef;
+      color: #2a2f3a;
+      font-weight: 650;
+    }
+
+    #metrics-content {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric-cell {
+      border: 1px solid #e3e7ef;
+      border-radius: 6px;
+      background: #f7f9fc;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .metric-label {
+      color: #7f8799;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .metric-value {
+      margin-top: 3px;
+      color: #1f2530;
+      font-size: 17px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .metric-value.warn {
+      color: #e0721a;
+    }
+
+    .axis-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .axis-pill {
+      border: 1px solid #e3e7ef;
+      border-radius: 5px;
+      background: #f7f9fc;
+      padding: 6px;
+      color: #4a5160;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .metrics-section-title {
+      margin: 12px 0 6px;
+      color: #4a5160;
+      font-size: 11px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .joint-table-wrap {
+      overflow: auto;
+      border: 1px solid #e3e7ef;
+      border-radius: 6px;
+      background: #ffffff;
+    }
+
+    #joint-metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+      min-width: 430px;
+    }
+
+    #action-metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+      min-width: 280px;
+    }
+
+    #action-metrics-table th,
+    #action-metrics-table td,
+    #joint-metrics-table th,
+    #joint-metrics-table td {
+      padding: 6px 7px;
+      border-bottom: 1px solid #eef1f6;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    #action-metrics-table th,
+    #joint-metrics-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f4f6fa;
+      color: #7f8799;
+      font-size: 10px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    #action-metrics-table th:first-child,
+    #action-metrics-table td:first-child,
+    #joint-metrics-table th:first-child,
+    #joint-metrics-table td:first-child {
+      text-align: left;
+    }
+
+    #action-metrics-table tbody tr:last-child td,
+    #joint-metrics-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .joint-error-high {
+      color: #e0721a;
+      font-weight: 700;
+    }
+
+    .joint-error-mid {
+      color: #c79200;
+      font-weight: 650;
+    }
+
+    .empty-metrics {
+      color: #7f8799;
+      padding: 12px;
+    }
+
+    .viewer canvas {
+      display: block;
+    }
+
+    #controls {
+      height: 52px;
+      display: grid;
+      grid-template-columns: auto auto minmax(140px, 1fr) auto auto auto auto auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px;
+      background: #ffffff;
+      border-top: 1px solid #d9dee8;
+    }
+
+    button,
+    select {
+      height: 32px;
+      border: 1px solid #cdd4e0;
+      background: #f2f4f8;
+      color: #2a2f3a;
+      border-radius: 6px;
+      padding: 0 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover,
+    select:hover {
+      background: #e6eaf2;
+    }
+
+    #play-btn.active {
+      border-color: #e0721a;
+      color: #c25d10;
+    }
+
+    #frame-slider {
+      width: 100%;
+      accent-color: #2196f3;
+    }
+
+    #frame-counter,
+    #mpjpe {
+      color: #4a5160;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    #mpjpe {
+      color: #c25d10;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 44px 0 52px 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(238, 241, 246, 0.94);
+      color: #2a2f3a;
+      font-size: 14px;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    @media (max-width: 900px) {
+      #main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 0.9fr 1fr 1fr;
+      }
+
+      #path-info {
+        display: none;
+      }
+
+      #controls {
+        grid-template-columns: auto auto 1fr auto;
+      }
+
+      #fit-btn,
+      #fps-select,
+      #mpjpe {
+        display: none;
+      }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <header>
+    <h1>HPE-Li-3D Inference Demo</h1>
+    <div id="seq-picker">
+      <select id="subject-select" title="Subject"></select>
+      <select id="action-select" title="Action"></select>
+      <button id="run-btn">Chạy</button>
+    </div>
+    <div id="path-info"></div>
+  </header>
+
+  <div id="loading">Connecting to local server...</div>
+
+  <main id="main">
+    <section class="panel" id="rgb-panel">
+      <div class="panel-title">
+        <span>RGB</span>
+        <div class="panel-title-actions">
+          <span id="frame-name"></span>
+          <button id="metrics-toggle" class="title-button" aria-expanded="false">Metrics</button>
+        </div>
+      </div>
+      <div id="rgb-wrap">
+        <div id="rgb-placeholder">No RGB frame</div>
+        <img id="rgb-image" alt="RGB frame">
+      </div>
+      <aside id="metrics-drawer" aria-hidden="true">
+        <div class="metrics-header">
+          <span>Metrics</span>
+          <button id="metrics-close" class="title-button">Close</button>
+        </div>
+        <div id="metrics-content">
+          <div class="metrics-section-title">Action Metrics</div>
+          <div class="joint-table-wrap">
+            <table id="action-metrics-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody id="action-metrics-body">
+                <tr>
+                  <td colspan="2" class="empty-metrics">No action loaded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="metrics-section-title">Frame Metrics</div>
+          <div class="metric-grid">
+            <div class="metric-cell">
+              <div class="metric-label">MPJPE</div>
+              <div class="metric-value" id="metric-frame-mpjpe">-- mm</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">Root Error</div>
+              <div class="metric-value" id="metric-root-error">-- mm</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">Root-Centered</div>
+              <div class="metric-value" id="metric-root-centered">-- mm</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-label">PCK 50 / 100mm</div>
+              <div class="metric-value" id="metric-pck">-- / --</div>
+            </div>
+          </div>
+          <div class="axis-strip">
+            <div class="axis-pill">X <span id="metric-axis-x">--</span> mm</div>
+            <div class="axis-pill">Y <span id="metric-axis-y">--</span> mm</div>
+            <div class="axis-pill">Z <span id="metric-axis-z">--</span> mm</div>
+          </div>
+          <div class="metrics-section-title">Joint Errors</div>
+          <div class="joint-table-wrap">
+            <table id="joint-metrics-table">
+              <thead>
+                <tr>
+                  <th>Joint</th>
+                  <th>Error</th>
+                  <th>dX</th>
+                  <th>dY</th>
+                  <th>dZ</th>
+                </tr>
+              </thead>
+              <tbody id="joint-metrics-body">
+                <tr>
+                  <td colspan="5" class="empty-metrics">No frame selected</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <span><span class="dot" style="background:#00B8D4"></span>Ground Truth</span>
+      </div>
+      <div class="viewer" id="gt-viewer"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <span><span class="dot" style="background:#FF6D00"></span>Prediction</span>
+      </div>
+      <div class="viewer" id="pred-viewer"></div>
+    </section>
+  </main>
+
+  <div id="controls">
+    <button id="play-btn">Play</button>
+    <button id="prev-btn">Prev</button>
+    <input type="range" id="frame-slider" min="0" max="0" value="0">
+    <button id="next-btn">Next</button>
+    <button id="fit-btn">Fit View</button>
+    <button id="save-btn">Save Image</button>
+    <select id="fps-select">
+      <option value="10">10 fps</option>
+      <option value="15">15 fps</option>
+      <option value="30">30 fps</option>
+    </select>
+    <span id="frame-counter">0 / 0</span>
+    <span id="mpjpe">MPJPE -- mm</span>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let cfg = null;
+    let gt = null;
+    let pred = null;
+    let diagnostics = null;
+    let baseRoot = [0, 0, 0];
+    let currentFrame = 0;
+    let timer = null;
+
+    const loading = document.getElementById('loading');
+    const slider = document.getElementById('frame-slider');
+    const counter = document.getElementById('frame-counter');
+    const playBtn = document.getElementById('play-btn');
+    const fpsSelect = document.getElementById('fps-select');
+    const frameName = document.getElementById('frame-name');
+    const mpjpe = document.getElementById('mpjpe');
+    const rgbImg = document.getElementById('rgb-image');
+    const rgbPlaceholder = document.getElementById('rgb-placeholder');
+    const pathInfo = document.getElementById('path-info');
+    const subjectSelect = document.getElementById('subject-select');
+    const actionSelect = document.getElementById('action-select');
+    const runBtn = document.getElementById('run-btn');
+    let catalog = null;
+    const metricsDrawer = document.getElementById('metrics-drawer');
+    const metricsToggle = document.getElementById('metrics-toggle');
+    const metricsClose = document.getElementById('metrics-close');
+    const metricFrameMpjpe = document.getElementById('metric-frame-mpjpe');
+    const metricRootError = document.getElementById('metric-root-error');
+    const metricRootCentered = document.getElementById('metric-root-centered');
+    const metricPck = document.getElementById('metric-pck');
+    const metricAxisX = document.getElementById('metric-axis-x');
+    const metricAxisY = document.getElementById('metric-axis-y');
+    const metricAxisZ = document.getElementById('metric-axis-z');
+    const actionMetricsBody = document.getElementById('action-metrics-body');
+    const jointMetricsBody = document.getElementById('joint-metrics-body');
+
+    function noCache(url) {
+      return url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    }
+
+    function toThree(k) {
+      // MMFi/camera coordinates: x is lateral, y is vertical/down, z is depth.
+      // Three.js is y-up and its camera looks along -z by default, so flip
+      // MMFi y and z to view the pose from the RGB camera side.
+      return new THREE.Vector3(
+        k[0] - baseRoot[0],
+        -(k[1] - baseRoot[1]),
+        -(k[2] - baseRoot[2])
+      );
+    }
+
+    function color(value) {
+      return new THREE.Color(value);
+    }
+
+    function distMm(a, b) {
+      const dx = (a[0] - b[0]) * 1000;
+      const dy = (a[1] - b[1]) * 1000;
+      const dz = (a[2] - b[2]) * 1000;
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    function formatMm(value) {
+      return Number.isFinite(value) ? value.toFixed(1) : '--';
+    }
+
+    function formatPct(value) {
+      return Number.isFinite(value) ? value.toFixed(1) + '%' : '--';
+    }
+
+    function formatRatio(value) {
+      return Number.isFinite(value) ? value.toFixed(3) : '--';
+    }
+
+    function actionMetricRow(label, value) {
+      return `<tr><td>${label}</td><td>${value}</td></tr>`;
+    }
+
+    function errorClass(value) {
+      if (value >= 100) return 'joint-error-high';
+      if (value >= 50) return 'joint-error-mid';
+      return '';
+    }
+
+    function computeCurrentFrameMetrics(idx) {
+      if (!gt || !pred || !gt.frames[idx] || !pred.frames[idx]) return null;
+      const gtFrame = gt.frames[idx];
+      const predFrame = pred.frames[idx];
+      const jointRows = [];
+      let errorSum = 0;
+      let rootCenteredSum = 0;
+      let pck50Count = 0;
+      let pck100Count = 0;
+      let axisAbs = [0, 0, 0];
+      const gtRoot = gtFrame[0];
+      const predRoot = predFrame[0];
+
+      for (let i = 0; i < gtFrame.length; i++) {
+        const dx = (predFrame[i][0] - gtFrame[i][0]) * 1000;
+        const dy = (predFrame[i][1] - gtFrame[i][1]) * 1000;
+        const dz = (predFrame[i][2] - gtFrame[i][2]) * 1000;
+        const error = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const rcDx = ((predFrame[i][0] - predRoot[0]) - (gtFrame[i][0] - gtRoot[0])) * 1000;
+        const rcDy = ((predFrame[i][1] - predRoot[1]) - (gtFrame[i][1] - gtRoot[1])) * 1000;
+        const rcDz = ((predFrame[i][2] - predRoot[2]) - (gtFrame[i][2] - gtRoot[2])) * 1000;
+        const rootCenteredError = Math.sqrt(rcDx * rcDx + rcDy * rcDy + rcDz * rcDz);
+
+        errorSum += error;
+        rootCenteredSum += rootCenteredError;
+        if (error <= 50) pck50Count += 1;
+        if (error <= 100) pck100Count += 1;
+        axisAbs[0] += Math.abs(dx);
+        axisAbs[1] += Math.abs(dy);
+        axisAbs[2] += Math.abs(dz);
+        jointRows.push({
+          name: cfg?.joint_names?.[i] || `Joint ${i}`,
+          error,
+          dx,
+          dy,
+          dz
+        });
+      }
+
+      const count = gtFrame.length || 1;
+      return {
+        mpjpe: pred.mpjpe_frames_mm?.[idx] ?? (errorSum / count),
+        rootError: distMm(predRoot, gtRoot),
+        rootCentered: rootCenteredSum / count,
+        pck50: pck50Count * 100 / count,
+        pck100: pck100Count * 100 / count,
+        axisMae: axisAbs.map(v => v / count),
+        jointRows
+      };
+    }
+
+    function updateFrameMetrics(idx) {
+      const metrics = computeCurrentFrameMetrics(idx);
+      if (!metrics) return;
+
+      metricFrameMpjpe.textContent = `${formatMm(metrics.mpjpe)} mm`;
+      metricRootError.textContent = `${formatMm(metrics.rootError)} mm`;
+      metricRootCentered.textContent = `${formatMm(metrics.rootCentered)} mm`;
+      metricPck.textContent = `${formatPct(metrics.pck50)} / ${formatPct(metrics.pck100)}`;
+      metricAxisX.textContent = formatMm(metrics.axisMae[0]);
+      metricAxisY.textContent = formatMm(metrics.axisMae[1]);
+      metricAxisZ.textContent = formatMm(metrics.axisMae[2]);
+      metricFrameMpjpe.classList.toggle('warn', metrics.mpjpe >= 100);
+      metricRootCentered.classList.toggle('warn', metrics.rootCentered >= 100);
+
+      jointMetricsBody.innerHTML = metrics.jointRows.map(row => `
+        <tr>
+          <td>${row.name}</td>
+          <td class="${errorClass(row.error)}">${formatMm(row.error)}</td>
+          <td>${formatMm(row.dx)}</td>
+          <td>${formatMm(row.dy)}</td>
+          <td>${formatMm(row.dz)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateActionMetrics() {
+      if (!diagnostics) return;
+      const axis = diagnostics.axis_mae_mm_by_name || {};
+      const corr = diagnostics.temporal_correlation || {};
+      const motion = diagnostics.motion_ratios || {};
+      const articulation = diagnostics.articulation_motion_ratios || {};
+      const rows = [
+        actionMetricRow('Frames', diagnostics.num_frames ?? '--'),
+        actionMetricRow('MPJPE', `${formatMm(diagnostics.mpjpe_mm)} mm`),
+        actionMetricRow('PA-MPJPE', `${formatMm(diagnostics.pa_mpjpe_mm)} mm`),
+        actionMetricRow('PCK@50mm', formatPct(diagnostics.pck_50mm)),
+        actionMetricRow('PCK@100mm', formatPct(diagnostics.pck_100mm)),
+        actionMetricRow('g_PCK@10', formatPct(diagnostics['g_PCK@10'])),
+        actionMetricRow('g_PCK@20', formatPct(diagnostics['g_PCK@20'])),
+        actionMetricRow('g_PCK@30', formatPct(diagnostics['g_PCK@30'])),
+        actionMetricRow('g_PCK@40', formatPct(diagnostics['g_PCK@40'])),
+        actionMetricRow('g_PCK@50', formatPct(diagnostics['g_PCK@50'])),
+        actionMetricRow('Root MPJPE', `${formatMm(diagnostics.root_mpjpe_mm)} mm`),
+        actionMetricRow('Root-Centered', `${formatMm(diagnostics.root_centered_mpjpe_mm)} mm`),
+        actionMetricRow('X MAE', `${formatMm(axis.x)} mm`),
+        actionMetricRow('Y MAE', `${formatMm(axis.y)} mm`),
+        actionMetricRow('Z MAE', `${formatMm(axis.z)} mm`),
+        actionMetricRow('Model Gain', `${formatMm(diagnostics.mpjpe_gain_over_constant_sequence_mean_mm)} mm`),
+        actionMetricRow('Coord Corr', formatRatio(corr.mean)),
+        actionMetricRow('Step Ratio', formatRatio(motion.mean_step_ratio)),
+        actionMetricRow('Articulation Ratio', formatRatio(articulation.mean_step_ratio))
+      ];
+      actionMetricsBody.innerHTML = rows.join('');
+    }
+
+    function setMetricsOpen(open) {
+      metricsDrawer.classList.toggle('open', open);
+      metricsDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+      metricsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      metricsToggle.classList.toggle('active', open);
+      if (open) updateFrameMetrics(currentFrame);
+    }
+
+    class PoseViewer {
+      constructor(containerId, jointColors, edgeColors) {
+        this.container = document.getElementById(containerId);
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xeef1f6);
+        this.camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+        this.camera.position.set(0, 0.4, 2.5);
+
+        // preserveDrawingBuffer keeps the rendered pixels readable so the
+        // "Save Image" feature can copy this canvas into the exported PNG.
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+        this.container.appendChild(this.renderer.domElement);
+
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.minDistance = 0.15;
+        this.controls.maxDistance = 20;
+
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const light = new THREE.DirectionalLight(0xffffff, 0.5);
+        light.position.set(2, 4, 3);
+        this.scene.add(light);
+
+        // Ground grid. Its height is corrected after fit() so it sits under the
+        // feet (box.min.y) instead of slicing through the root joint.
+        this.grid = new THREE.GridHelper(4, 24, 0x9aa6ba, 0xcdd6e4);
+        this.scene.add(this.grid);
+
+        this.group = new THREE.Group();
+        this.scene.add(this.group);
+        this.joints = [];
+        this.bones = [];
+
+        for (let i = 0; i < 17; i++) {
+          const c = color(jointColors[i]);
+          const mat = new THREE.MeshStandardMaterial({
+            color: c,
+            emissive: c,
+            emissiveIntensity: 0.25,
+            roughness: 0.35
+          });
+          const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 16), mat);
+          this.group.add(sphere);
+          this.joints.push(sphere);
+        }
+
+        for (let i = 0; i < cfg.edges.length; i++) {
+          const geo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(),
+            new THREE.Vector3()
+          ]);
+          const line = new THREE.Line(
+            geo,
+            new THREE.LineBasicMaterial({ color: color(edgeColors[i]) })
+          );
+          this.group.add(line);
+          this.bones.push(line);
+        }
+
+        this.resizeObserver = new ResizeObserver(() => this.resize());
+        this.resizeObserver.observe(this.container);
+        this.resize();
+        this.animate();
+      }
+
+      update(kpts) {
+        if (!kpts) return;
+        for (let i = 0; i < 17; i++) {
+          this.joints[i].position.copy(toThree(kpts[i]));
+        }
+        for (let i = 0; i < cfg.edges.length; i++) {
+          const [a, b] = cfg.edges[i];
+          const pos = this.bones[i].geometry.attributes.position.array;
+          const pa = toThree(kpts[a]);
+          const pb = toThree(kpts[b]);
+          pos[0] = pa.x; pos[1] = pa.y; pos[2] = pa.z;
+          pos[3] = pb.x; pos[4] = pb.y; pos[5] = pb.z;
+          this.bones[i].geometry.attributes.position.needsUpdate = true;
+        }
+      }
+
+      fit(frames) {
+        const pts = [];
+        const useCount = Math.min(frames.length, 40);
+        for (let t = 0; t < useCount; t++) {
+          for (const k of frames[t]) pts.push(toThree(k));
+        }
+        if (!pts.length) return;
+        const box = new THREE.Box3().setFromPoints(pts);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const radius = Math.max(size.x, size.y, size.z, 0.5);
+
+        // Drop the ground grid to the lowest point (the feet) so the horizontal
+        // plane no longer cuts through the body at the root joint.
+        this.grid.position.y = box.min.y;
+
+        this.controls.target.copy(center);
+        this.camera.position.set(center.x, center.y + radius * 0.12, center.z + radius * 2.3);
+        this.controls.update();
+      }
+
+      resize() {
+        const w = Math.max(1, this.container.clientWidth);
+        const h = Math.max(1, this.container.clientHeight);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    let gtViewer = null;
+    let predViewer = null;
+
+    async function waitUntilReady() {
+      while (true) {
+        const res = await fetch(noCache('/api/status'));
+        const s = await res.json();
+        if (s.error) throw new Error(s.error);
+        if (s.ready) return;
+        loading.textContent = s.status || 'Loading...';
+        await new Promise(r => setTimeout(r, 700));
+      }
+    }
+
+    // ─── Chọn sequence (subject/action) từ dataset ──────────────────────────
+
+    async function loadCatalog() {
+      catalog = await fetch(noCache('/api/catalog')).then(r => r.json());
+      subjectSelect.innerHTML = (catalog.subjects || [])
+        .map(s => `<option value="${s.id}">${s.scene} / ${s.id}</option>`).join('');
+      populateActions();
+    }
+
+    function populateActions() {
+      const subj = (catalog?.subjects || []).find(s => s.id === subjectSelect.value);
+      actionSelect.innerHTML = (subj?.actions || [])
+        .map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+
+    function syncPickerToLoaded() {
+      // Đưa dropdown về đúng sequence đang hiển thị (khi nạp sẵn từ dòng lệnh).
+      const seq = cfg?.paths?.sequence;              // "E03/S21/A05"
+      if (!seq) return;
+      const [, subj, act] = seq.split('/');
+      if (subj && [...subjectSelect.options].some(o => o.value === subj)) {
+        subjectSelect.value = subj;
+        populateActions();
+      }
+      if (act && [...actionSelect.options].some(o => o.value === act)) {
+        actionSelect.value = act;
+      }
+    }
+
+    // Nạp dữ liệu sequence hiện tại từ server rồi vẽ (tái dùng cho mỗi lần Chạy).
+    async function fetchVisualization() {
+      loading.classList.remove('hidden');
+      await waitUntilReady();
+      loading.textContent = 'Loading visualization...';
+      [cfg, gt, pred] = await Promise.all([
+        fetch(noCache('/api/config')).then(r => r.json()),
+        fetch(noCache('/api/data')).then(r => r.json()),
+        fetch(noCache('/api/predict')).then(r => r.json())
+      ]);
+      diagnostics = await fetch(noCache('/api/diagnostics')).then(r => r.json());
+
+      baseRoot = gt.frames[0][0].slice();
+      slider.max = gt.num_frames - 1;
+      const seqMpjpe = diagnostics?.mpjpe_mm == null ? '' : ` | seq MPJPE ${diagnostics.mpjpe_mm.toFixed(1)} mm`;
+      const corr = diagnostics?.temporal_correlation?.mean == null ? '' : ` | corr ${diagnostics.temporal_correlation.mean.toFixed(2)}`;
+      const zMae = diagnostics?.axis_mae_mm_by_name?.z == null ? '' : ` | Z MAE ${diagnostics.axis_mae_mm_by_name.z.toFixed(1)} mm`;
+      const articulation = diagnostics?.articulation_motion_ratios?.mean_step_ratio == null ? '' : ` | articulation ${diagnostics.articulation_motion_ratios.mean_step_ratio.toFixed(2)}x`;
+      const seqLabel = cfg.paths.sequence ? `[${cfg.paths.sequence}] ` : '';
+      pathInfo.textContent = seqLabel + (cfg.paths.checkpoint || '') + seqMpjpe + zMae + articulation + corr;
+      pathInfo.title = diagnostics?.warnings?.join(' | ') || pathInfo.textContent;
+      updateActionMetrics();
+      syncPickerToLoaded();
+
+      // Viewer chỉ dựng một lần; các lần nạp sau chỉ thay dữ liệu rồi fit lại.
+      if (!gtViewer) {
+        gtViewer = new PoseViewer('gt-viewer', cfg.gt_joint_colors, cfg.gt_edge_colors);
+        predViewer = new PoseViewer('pred-viewer', cfg.pred_joint_colors, cfg.pred_edge_colors);
+      }
+      fitAll();
+      goToFrame(0);
+      loading.classList.add('hidden');
+    }
+
+    // Bấm "Chạy": yêu cầu server nạp sequence mới rồi vẽ lại.
+    async function runSelected() {
+      const subject = subjectSelect.value;
+      const action = actionSelect.value;
+      if (!subject || !action) return;
+      stopPlay();
+      runBtn.disabled = true;
+      loading.classList.remove('hidden');
+      loading.textContent = `Đang nạp ${subject} / ${action}...`;
+      try {
+        const res = await fetch(noCache(`/api/load?subject=${subject}&action=${action}`));
+        const j = await res.json();
+        if (j.error) throw new Error(j.error);
+        await fetchVisualization();
+      } catch (err) {
+        console.error(err);
+        loading.textContent = 'Lỗi: ' + err.message;
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    async function boot() {
+      try {
+        await loadCatalog();
+        const s = await fetch(noCache('/api/status')).then(r => r.json());
+        if (s.ready || !s.idle) {
+          // Đã có sequence, hoặc đang nạp sẵn từ dòng lệnh → vẽ luôn.
+          await fetchVisualization();
+        } else {
+          loading.textContent = s.status || 'Chọn subject + action rồi bấm Chạy.';
+        }
+      } catch (err) {
+        console.error(err);
+        loading.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    function goToFrame(idx) {
+      if (!gt) return;
+      currentFrame = Math.max(0, Math.min(idx, gt.num_frames - 1));
+      slider.value = currentFrame;
+      counter.textContent = `${currentFrame + 1} / ${gt.num_frames}`;
+      frameName.textContent = gt.frame_names[currentFrame] || '';
+
+      gtViewer.update(gt.frames[currentFrame]);
+      predViewer.update(pred.frames[currentFrame]);
+
+      const frameMpjpe = pred.mpjpe_frames_mm?.[currentFrame];
+      mpjpe.textContent = frameMpjpe == null ? 'MPJPE -- mm' : `MPJPE ${frameMpjpe.toFixed(1)} mm`;
+      updateFrameMetrics(currentFrame);
+
+      rgbImg.src = noCache('/api/rgb?frame=' + currentFrame);
+    }
+
+    rgbImg.onload = () => {
+      rgbPlaceholder.style.display = 'none';
+      rgbImg.style.display = 'block';
+    };
+    rgbImg.onerror = () => {
+      rgbImg.style.display = 'none';
+      rgbPlaceholder.style.display = 'block';
+    };
+
+    function fitAll() {
+      if (!gtViewer || !predViewer) return;
+      // Fit both viewers to the same combined range so GT and prediction share
+      // a consistent scale and the grid floor lines up.
+      const sharedFrames = gt.frames.concat(pred.frames);
+      gtViewer.fit(sharedFrames);
+      predViewer.fit(sharedFrames);
+    }
+
+    function downloadComposite() {
+      if (!gtViewer || !predViewer) return;
+      // Render once synchronously so each drawing buffer holds the current frame
+      // before we copy it into the export canvas.
+      gtViewer.renderer.render(gtViewer.scene, gtViewer.camera);
+      predViewer.renderer.render(predViewer.scene, predViewer.camera);
+
+      const gtCanvas = gtViewer.renderer.domElement;
+      const predCanvas = predViewer.renderer.domElement;
+
+      const gap = 10;
+      const outH = predCanvas.height;                  // device pixels, image height
+      const gtW = Math.round(outH * (gtCanvas.width / gtCanvas.height));
+      const predW = Math.round(outH * (predCanvas.width / predCanvas.height));
+
+      const haveRgb = rgbImg.style.display !== 'none' && rgbImg.naturalWidth > 0;
+      const rgbW = haveRgb ? Math.round(outH * (rgbImg.naturalWidth / rgbImg.naturalHeight)) : 0;
+
+      // Caption band drawn above each panel.
+      const fontSize = Math.max(18, Math.round(outH * 0.04));
+      const labelH = Math.round(fontSize * 1.9);
+
+      const out = document.createElement('canvas');
+      out.width = (haveRgb ? rgbW + gap : 0) + gtW + gap + predW;
+      out.height = outH + labelH;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, out.width, out.height);
+
+      // Draw the panels below the caption band, and a centered label above each.
+      ctx.fillStyle = '#1f2530';
+      ctx.font = `600 ${fontSize}px Inter, Segoe UI, Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const labelY = Math.round(labelH / 2);
+
+      const drawPanel = (source, x, w, label) => {
+        ctx.drawImage(source, x, labelH, w, outH);
+        ctx.fillText(label, x + w / 2, labelY);
+      };
+
+      let x = 0;
+      if (haveRgb) {
+        drawPanel(rgbImg, x, rgbW, 'Image');
+        x += rgbW + gap;
+      }
+      drawPanel(gtCanvas, x, gtW, 'Ground Truth');
+      x += gtW + gap;
+      drawPanel(predCanvas, x, predW, 'Predict');
+
+      out.toBlob((blob) => {
+        if (!blob) return;
+        const base = (gt?.frame_names?.[currentFrame] || `frame${currentFrame + 1}`)
+          .replace(/[^\w.-]+/g, '_');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${base}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+
+    function startPlay() {
+      if (timer) return;
+      playBtn.textContent = 'Pause';
+      playBtn.classList.add('active');
+      const fps = parseInt(fpsSelect.value, 10);
+      timer = setInterval(() => {
+        const next = currentFrame >= gt.num_frames - 1 ? 0 : currentFrame + 1;
+        goToFrame(next);
+      }, 1000 / fps);
+    }
+
+    function stopPlay() {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = null;
+      playBtn.textContent = 'Play';
+      playBtn.classList.remove('active');
+    }
+
+    function togglePlay() {
+      timer ? stopPlay() : startPlay();
+    }
+
+    playBtn.addEventListener('click', togglePlay);
+    subjectSelect.addEventListener('change', populateActions);
+    runBtn.addEventListener('click', runSelected);
+    metricsToggle.addEventListener('click', () => {
+      setMetricsOpen(!metricsDrawer.classList.contains('open'));
+    });
+    metricsClose.addEventListener('click', () => setMetricsOpen(false));
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      stopPlay();
+      goToFrame(currentFrame - 1);
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+      stopPlay();
+      goToFrame(currentFrame + 1);
+    });
+    document.getElementById('fit-btn').addEventListener('click', fitAll);
+    document.getElementById('save-btn').addEventListener('click', downloadComposite);
+    slider.addEventListener('input', () => {
+      stopPlay();
+      goToFrame(parseInt(slider.value, 10));
+    });
+    fpsSelect.addEventListener('change', () => {
+      if (timer) {
+        stopPlay();
+        startPlay();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === ' ') {
+        event.preventDefault();
+        togglePlay();
+      } else if (event.key === 'ArrowLeft') {
+        stopPlay();
+        goToFrame(currentFrame - 1);
+      } else if (event.key === 'ArrowRight') {
+        stopPlay();
+        goToFrame(currentFrame + 1);
+      } else if (event.key === 's' || event.key === 'S') {
+        downloadComposite();
+      }
+    });
+
+    boot();
+  </script>
+</body>
+
+</html>
