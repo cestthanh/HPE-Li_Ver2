@@ -31,7 +31,7 @@ DEFAULT_CONFIG = {
     "sk_reduction":          4,  # tỉ lệ nén channel trong SK-attention
     "sk_min_bottleneck":    32,  # chiều bottleneck tối thiểu
     "transformer_layers":    1,  # số block trong mỗi ChannelTransformer
-    "transformer_heads":     3,  # số attention head
+    "transformer_heads":     6,  # số attention head (khớp cấu hình A3 để so sánh công bằng)
 }
 
 
